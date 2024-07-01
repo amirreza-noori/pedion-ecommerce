@@ -1,5 +1,6 @@
-import Image from 'next/image';
+import { getUserById } from '@/apis';
 
-export default function Home() {
+export default async function Home() {
+	await getUserById({ id: 1 });
 	return <div>Home Page</div>;
 }
