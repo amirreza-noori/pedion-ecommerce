@@ -1,0 +1,17 @@
+version: '3.9'
+services:
+  pedion-database:
+    container_name: pedion-database
+    image: postgres:14-alpine
+    ports:
+      - 15432:5432
+    volumes:
+      - ~/apps/postgres:/var/lib/postgresql/data
+    networks:
+      - pedion-ecommerce
+    env_file:
+      - /run/secrets/.env.pedion-ecommerce
+
+networks:
+  pedion-ecommerce:
+    name: pedion-ecommerce

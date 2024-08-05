@@ -6,21 +6,24 @@ RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 COPY package.json ./
-RUN npm i --no-audit --no-fund 
+RUN yarn
 
 COPY . .
 
-# Uncomment the following line in case you want to disable telemetry during the build.
+# Disable telemetry during the build.
 ENV NEXT_TELEMETRY_DISABLED 1
 
-RUN npm run build
+# Copy secret file
+RUN --mount=type=secret,id=database-env,target=/app/.env.secret cp /app/.env.secret /app/.env.production 
+
+RUN yarn seed & yarn build
 
 # Production image, copy all the files and run next
 FROM base AS runner
 WORKDIR /app
 
 ENV NODE_ENV production
-# Uncomment the following line in case you want to disable telemetry during runtime.
+# Disable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED 1
 
 RUN addgroup --system --gid 1001 nodejs

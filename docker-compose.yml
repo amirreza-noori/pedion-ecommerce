@@ -4,12 +4,25 @@ services:
     container_name: pedion-ecommerce
     build:
       context: .
-    ports:
-      - 443:3000
+      secrets:
+        - database-env
+    # ports:
+    #   - 443:3000
     restart: always
+    secrets:
+      - database-env
     networks:
+      - pedion-ecommerce
       - www
 
 networks:
+  pedion-ecommerce:
+    name: pedion-ecommerce
+    external: true
   www:
     name: www
+    external: true
+
+secrets:
+  database-env:
+    file: /run/secrets/.env.pedion-ecommerce
