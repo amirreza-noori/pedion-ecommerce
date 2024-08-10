@@ -4,7 +4,7 @@ services:
     container_name: pedion-database
     image: postgres:14-alpine
     ports:
-      - 15432:5432
+      - 5432:5432
     volumes:
       - ~/apps/postgres:/var/lib/postgresql/data
     networks:
