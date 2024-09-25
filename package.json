@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint && npx tsc",
+    "lint": "eslint --ext ts,tsx,js,jsx,svg,png,webp,webm,jpg,jpeg . && npx tsc",
     "seed": "node ./scripts/seed.js",
     "prepare": "husky",
     "prettify": "prettier --write ."

@@ -28,14 +28,16 @@
     "check-file/filename-naming-convention": [
       "error",
       {
-        "**/*.{d.ts,test.tsx,test.ts,mock.ts,mock.tsx}": "[a-z][a-zA-Z.]*"
+        "**/*.{d.ts,test.tsx,test.ts,mock.ts,mock.tsx,stories.tsx,config.ts}": "[a-z][a-zA-Z.]*",
+        "**/[^.]+.[^.]+": "CAMEL_CASE"
       }
     ],
     "check-file/folder-naming-convention": [
       "error",
       {
-        "!(app|public)/**": "CAMEL_CASE",
-        "(app|public)/**": "KEBAB_CASE"
+        "app/**": "NEXT_JS_APP_ROUTER_CASE",
+        "public/**": "KEBAB_CASE",
+        "!(app|public|node_modules|.next|.)/**": "CAMEL_CASE"
       }
     ]
   },

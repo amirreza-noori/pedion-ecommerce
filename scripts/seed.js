@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-var-requires */
+
 const postgres = require('postgres');
 const { env } = require('process');
 
@@ -14,5 +16,6 @@ const sql = postgres({
 });
 
 sql.file('./scripts/seed.sql').catch((err) => {
+  // eslint-disable-next-line no-console
   console.error('An error occurred while attempting to seed the database:', err);
 });

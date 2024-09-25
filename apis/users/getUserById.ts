@@ -10,4 +10,5 @@ export const getUserById = async (params: Params) => {
   const res = await sql<User[]>`
 		SELECT * FROM roles
 	`;
+  return { res, params };
 };
