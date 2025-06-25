@@ -10,7 +10,6 @@
   "importOrder": [
     "^@?(react|next).*$",
     "^@/lib.*$",
-    "^@/apis.*$",
     "^(@/interfaces.*)|(.*\\.d\\.ts)|(.*[tT]ypes?)|(.*/[tT]ypes?/.*)$",
     "^.*$"
   ],

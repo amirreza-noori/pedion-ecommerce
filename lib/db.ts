@@ -1,11 +1,11 @@
-import postgres from 'postgres';
-import { env } from 'process';
+import { Client } from '@elastic/elasticsearch';
 
-const sql = postgres({
-  host: env.POSTGRES_HOST,
-  database: env.POSTGRES_DATABASE,
-  user: env.POSTGRES_USER,
-  password: env.POSTGRES_PASSWORD,
+const db = new Client({
+  node: process.env.NEXT_ELASTIC_NODE_URL,
+  auth: {
+    username: process.env.ELASTIC_USERNAME || '',
+    password: process.env.ELASTIC_PASSWORD || '',
+  },
 });
 
-export default sql;
+export default db;

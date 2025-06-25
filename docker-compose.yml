@@ -4,25 +4,121 @@ services:
     container_name: pedion-ecommerce
     build:
       context: .
-      secrets:
-        - database-env
-    # ports:
-    #   - 443:3000
+    ports:
+      - 13000:3000
     restart: always
     secrets:
       - database-env
     networks:
       - pedion-ecommerce
       - www
+    volumes:
+      - .:/app
+    depends_on:
+      elastic:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  elastic:
+    container_name: elastic
+    image: elasticsearch:8.14.0
+    restart: always
+    environment:
+      ES_JAVA_OPTS: '-Xms512m -Xmx512m'
+      xpack.security.enabled: 'true'
+      ELASTIC_USERNAME: ${ELASTIC_USERNAME}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      KIBANA_USERNAME: ${KIBANA_USERNAME}
+      KIBANA_PASSWORD: ${KIBANA_PASSWORD}
+      discovery.type: single-node
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elastic_data:/usr/share/elasticsearch/data
+      - ./configs/elasticsearch/setup_passwords.sh:/usr/local/bin/setup_passwords.sh:ro # Mount the setup script
+    entrypoint: ['/usr/local/bin/setup_passwords.sh'] # Run the setup script as entrypoint
+    healthcheck:
+      test:
+        [
+          'CMD-SHELL',
+          'curl -sS -u ${ELASTIC_USERNAME}:${ELASTIC_PASSWORD} http://localhost:9200/_cluster/health | grep -q ''"status":"green"''',
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    ports:
+      - 19200:9200
+    networks:
+      - pedion-ecommerce
+
+  kibana:
+    container_name: kibana
+    image: kibana:8.14.0
+    restart: always
+    environment:
+      ELASTICSEARCH_HOSTS: http://elastic:9200
+      ELASTICSEARCH_USERNAME: ${KIBANA_USERNAME} # Now using the specific Kibana user
+      ELASTICSEARCH_PASSWORD: ${KIBANA_PASSWORD} # Now using the specific Kibana password
+    networks:
+      - pedion-ecommerce
+    depends_on:
+      elastic:
+        condition: service_healthy # Wait for elastic to be healthy (passwords set)
+    ports:
+      - 15601:5601
+
+  logstash:
+    container_name: logstash
+    image: logstash:8.14.0
+    restart: always
+    environment:
+      LS_JAVA_OPTS: '-Xms256m -Xmx256m'
+      ELASTICSEARCH_HOSTS: http://elastic:9200
+      ELASTICSEARCH_USERNAME: ${ELASTIC_USERNAME} # Logstash can use the elastic superuser for simplicity or create another user
+      ELASTICSEARCH_PASSWORD: ${ELASTIC_PASSWORD}
+    volumes:
+      # You might need to add a Logstash configuration file here
+      # For example: - ./logstash/config/logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+      - logstash_data:/usr/share/logstash/data
+    networks:
+      - pedion-ecommerce
+    depends_on:
+      elastic:
+        condition: service_healthy
+
+  minio:
+    container_name: minio
+    image: minio/minio:latest
+    restart: always
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data
+    ports:
+      - 19000:9000
+      - 19001:9001
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:9000/minio/health/live']
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - pedion-ecommerce
 
 networks:
   pedion-ecommerce:
     name: pedion-ecommerce
-    external: true
   www:
     name: www
     external: true
 
 secrets:
   database-env:
-    file: /run/secrets/.env.pedion-ecommerce
+    file: ./.env
+
+volumes:
+  elastic_data: # Define a volume for Elasticsearch data
+  logstash_data:

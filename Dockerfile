@@ -1,49 +1,41 @@
-FROM node:18-alpine AS base
+# Stage 1: Dependency Installation
+# Installs all node_modules (dev and prod) to be copied to the next stage.
+FROM node:20-alpine AS deps
 
-# Rebuild the source code only when needed
-FROM base AS builder
-RUN apk add --no-cache libc6-compat
+# Set working directory inside the container
 WORKDIR /app
 
+# Copy package.json and lock files (yarn.lock or package-lock.json)
+# Copying these first allows Docker to cache the npm install step.
 COPY package.json ./
-RUN yarn
 
-COPY . .
+# Install ALL dependencies (including dev dependencies, as 'npm run build' might need them)
+RUN npm install --no-audit
 
-# Disable telemetry during the build.
-ENV NEXT_TELEMETRY_DISABLED 1
+# Stage 2: Runtime Environment (for both Dev and Prod modes)
+FROM node:20-alpine AS runner
 
-# Copy secret file
-RUN --mount=type=secret,id=database-env,target=/app/.env.secret cp /app/.env.secret /app/.env.production 
-
-RUN yarn seed & yarn build
-
-# Production image, copy all the files and run next
-FROM base AS runner
+# Set working directory
 WORKDIR /app
 
-ENV NODE_ENV production
-# Disable telemetry during runtime.
-ENV NEXT_TELEMETRY_DISABLED 1
+# Copy node_modules from the 'deps' stage to the 'runner' stage
+# This ensures that dependencies are present without needing to reinstall them.
+COPY --from=deps /app/node_modules ./node_modules
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+# Copy the custom entrypoint script into the container
+COPY ./configs/nextJs/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-COPY --from=builder /app/public ./public
+# Make the entrypoint script executable
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Set the correct permission for prerender cache
-RUN mkdir .next
-RUN chown nextjs:nodejs .next
-
-# Automatically leverage output traces to reduce image size
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
+# Expose the default Next.js port (3000)
+# This informs Docker that the container listens on this port.
 EXPOSE 3000
 
-ENV PORT 3000
+# Set the entrypoint to our custom script.
+# This script will be executed every time the container starts.
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 
-# server.js is created by next build from the standalone output
-CMD HOSTNAME="0.0.0.0" node server.js
+# A default CMD can be provided, but our entrypoint handles the main logic,
+# so it can be empty or used for passing arguments to the entrypoint.
+CMD []
